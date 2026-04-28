@@ -3,7 +3,7 @@
 ![Made with Rage](https://img.shields.io/badge/made%20with-rage-cc0000?style=flat-square&labelColor=1a1a1a)
 ![Works on My Machine](https://img.shields.io/badge/works%20on-my%20machine-6a0dad?style=flat-square&labelColor=1a1a1a)
 ![Windows](https://img.shields.io/badge/platform-windows-0078d4?style=flat-square&labelColor=1a1a1a)
-![Python 3.12](https://img.shields.io/badge/python-3.8%2B-f7c948?style=flat-square&labelColor=1a1a1a)
+![Python 3.12](https://img.shields.io/badge/python-3.12%2B-f7c948?style=flat-square&labelColor=1a1a1a)
 ![License MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square&labelColor=1a1a1a)
 
 > Shut down your laptop the way it deserves.
