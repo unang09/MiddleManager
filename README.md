@@ -3,12 +3,13 @@
 ![Made with Rage](https://img.shields.io/badge/made%20with-rage-cc0000?style=flat-square&labelColor=1a1a1a)
 ![Works on My Machine](https://img.shields.io/badge/works%20on-my%20machine-6a0dad?style=flat-square&labelColor=1a1a1a)
 ![Windows](https://img.shields.io/badge/platform-windows-0078d4?style=flat-square&labelColor=1a1a1a)
-![Python 3.12](https://img.shields.io/badge/python-3.12%2B-f7c948?style=flat-square&labelColor=1a1a1a)
+![Linux](https://img.shields.io/badge/platform-linux-E95420?style=flat-square&labelColor=1a1a1a)
+![Python 3.12](https://img.shields.io/badge/python-3.12-f7c948?style=flat-square&labelColor=1a1a1a)
 ![License MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square&labelColor=1a1a1a)
 
 > Shut down your laptop the way it deserves.
 
-MiddleManager is a Windows desktop app that watches your webcam, detects when you flip it off, and shuts your computer down. No buttons. No menus. Just you, your finger, and zero regrets.
+MiddleManager is a Windows and Linux desktop app that sits silently in your system tray, watches your webcam on demand, and shuts your computer down when you flip it off. No buttons. No menus. Just you, your finger, and zero regrets.
 
 ---
 
@@ -24,11 +25,23 @@ MiddleManager fixes this.
 
 ## Demo
 
-1. Open MiddleManager
-2. Flip off your webcam
-3. Watch the 5-second countdown
-4. Cancel if you've had a change of heart _(you won't)_
-5. Your laptop shuts down
+1. Run MiddleManager — it hides silently in your system tray
+2. Press `Ctrl+Alt+M` to wake the camera for 10 seconds
+3. Flip off your webcam
+4. Watch the 5-second countdown
+5. Cancel if you've had a change of heart _(you won't)_
+6. Your laptop shuts down
+
+---
+
+## Features
+
+- **Runs in the background** — lives in the system tray, no visible window
+- **On-demand camera** — camera only activates when you press the hotkey, not 24/7
+- **Global hotkey** — `Ctrl+Alt+M` wakes the camera from anywhere, no matter what app is focused
+- **Two modes** — Manual (hotkey works anytime) or Schedule (hotkey only works Mon–Fri, 9am–5pm)
+- **5-second countdown** — with a cancel button, for the weak of heart
+- **Cross-platform** — works on Windows and Linux
 
 ---
 
@@ -36,7 +49,7 @@ MiddleManager fixes this.
 
 **Requirements**
 
-- Windows 10 / 11
+- Windows 10 / 11 or Linux
 - Python 3.12 (specifically — MediaPipe does not support 3.13 or 3.14, because Google hates you)
 - A webcam
 - Pent-up frustration
@@ -62,7 +75,7 @@ middlemanager-env\Scripts\activate
 **Install dependencies**
 
 ```bash
-pip install opencv-python mediapipe
+pip install opencv-python mediapipe pystray pillow pynput
 ```
 
 **Run**
@@ -77,16 +90,26 @@ On first run, the app will automatically download the MediaPipe hand landmarker 
 
 ## How it works
 
-MiddleManager uses [MediaPipe](https://developers.google.com/mediapipe) to detect hand landmarks in real time via your webcam. It checks whether:
+MiddleManager runs silently in the system tray and does nothing until you need it.
+
+Press `Ctrl+Alt+M` — the camera activates for 10 seconds. During that window, MediaPipe reads each frame and checks whether:
 
 - The middle finger is extended
 - All other fingers (index, ring, pinky) are curled
 
-The gesture must be held for ~10 consecutive frames to trigger — so a passing wave won't accidentally nuke your unsaved work.
+The gesture must be held for ~10 consecutive frames to trigger — so a passing wave won't accidentally nuke your unsaved work. If no gesture is detected within 10 seconds, the camera shuts off and goes back to sleep.
 
-Once confirmed, a countdown window appears. You have 5 seconds to cancel by clicking the button, pressing any key, or closing the window. If you don't, `shutdown /s /t 0` runs and Windows goes down.
+Once triggered, a countdown window appears center-screen. You have 5 seconds to cancel by clicking the button, pressing any key, or closing the window. If you don't — it's over.
 
-Press **Q** in the webcam window to quit the app entirely.
+---
+
+## Modes
+
+Right-click the tray icon to switch between modes.
+
+**Manual** — the hotkey works anytime, any day. Maximum chaos.
+
+**Schedule** — the hotkey only works Monday to Friday, 9am to 5pm. Outside those hours, pressing `Ctrl+Alt+M` does nothing. For when you want MiddleManager to understand work-life balance better than your employer does.
 
 ---
 
@@ -100,9 +123,10 @@ The gesture requires all four conditions to be met simultaneously — middle fin
 
 PRs welcome. Ideas that would make this better:
 
-- System tray icon so it runs silently in the background
 - Custom sound on trigger
 - Support for other gestures (thumbs down → sleep, double finger guns → restart)
+- Configurable work hours for Schedule mode
+- Configurable hotkey
 
 ---
 
@@ -136,7 +160,19 @@ A: Depends on your webcam. If it can't see your finger, that's between you and y
 A: The license is MIT. You accepted all responsibility the moment you ran `python middle_finger_shutdown.py`. We wish you well.
 
 **Q: Can I use this at work?**
-A: We cannot stop you. We would not stop you. We are, in fact, proud of you.
+A: We cannot stop you. We would not stop you. We are, in fact, proud of you. Consider using Schedule mode for maximum professionalism.
+
+**Q: Why does the hotkey only work during work hours in Schedule mode?**
+A: Because your laptop also deserves to clock out. Unlike you.
+
+**Q: I'm on Linux and it doesn't shut down. Why?**
+A: `shutdown -h now` requires sudo privileges on Linux. Run the app with `sudo python middle_finger_shutdown.py`, or add a sudoers rule so it can run without a password:
+
+```
+echo "$USER ALL=(ALL) NOPASSWD: /sbin/shutdown" | sudo tee /etc/sudoers.d/middlemanager
+```
+
+Yes, you are granting a finger-detection app the right to shut down your computer. You knew what you signed up for.
 
 **Q: My laptop didn't shut down. Why?**
 A: Windows probably started an update mid-shutdown. There is nothing we can do. There is nothing anyone can do.
@@ -148,6 +184,8 @@ A: The Pro version is the same app but you paid for it. Coming never.
 A: Flip off your laptop and find out.
 
 ---
+
+## Disclaimer
 
 This app will shut down your computer. Unsaved work will be lost. The developer is not responsible for lost documents, failed deadlines, or strained relationships with your laptop. Use responsibly — or don't, that's kind of the point.
 
