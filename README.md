@@ -37,9 +37,27 @@ MiddleManager fixes this.
 **Requirements**
 
 - Windows 10 / 11
-- Python 3.8+
+- Python 3.12 (specifically — MediaPipe does not support 3.13 or 3.14, because Google hates you)
 - A webcam
 - Pent-up frustration
+
+**Get Python 3.12.10**
+
+Download the Windows 64-bit installer from the [official release page](https://www.python.org/downloads/release/python-31210/). During installation, check **"Add Python to PATH"**.
+
+**Clone the repo**
+
+```bash
+git clone git@github.com:yourusername/MiddleManager.git
+cd MiddleManager
+```
+
+**Create a virtual environment**
+
+```bash
+py -3.12 -m venv middlemanager-env
+middlemanager-env\Scriptsctivate
+```
 
 **Install dependencies**
 
@@ -52,6 +70,8 @@ pip install opencv-python mediapipe
 ```bash
 python middle_finger_shutdown.py
 ```
+
+On first run, the app will automatically download the MediaPipe hand landmarker model (~9MB). After that it works offline.
 
 ---
 
