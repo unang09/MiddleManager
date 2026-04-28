@@ -9,6 +9,8 @@ import time
 import sys
 import urllib.request
 import os
+from PIL import Image, ImageDraw
+import pystray
 
 # --- Download model if needed ---
 
@@ -41,6 +43,18 @@ options = vision.HandLandmarkerOptions(
     min_tracking_confidence=0.5
 )
 detector = vision.HandLandmarker.create_from_options(options)
+
+# --- Tray Icon ---
+
+def create_tray_icon():
+    img = Image.new("RGB", (64, 64), color="#1a1a1a")
+    draw = ImageDraw.Draw(img)
+    # Draw a simple hand/finger icon
+    draw.rectangle([26, 10, 38, 45], fill="#ffffff", outline="#ffffff")  # middle finger
+    draw.rectangle([14, 28, 25, 45], fill="#555555", outline="#555555")  # index (curled)
+    draw.rectangle([39, 28, 50, 45], fill="#555555", outline="#555555")  # ring (curled)
+    draw.rectangle([20, 45, 44, 54], fill="#ffffff", outline="#ffffff")  # palm
+    return img
 
 # --- Countdown Window ---
 
@@ -113,6 +127,8 @@ class CountdownWindow:
 class MiddleFingerApp:
     def __init__(self):
         self.countdown_active = False
+        self.running = True
+        self.tray = None
 
     def on_cancel(self):
         self.countdown_active = False
@@ -136,22 +152,26 @@ class MiddleFingerApp:
         threading.Thread(target=countdown, daemon=True).start()
         win.run()
 
-    def run(self):
+    def quit_app(self, icon, item):
+        print("[INFO] Quitting MiddleManager.")
+        self.running = False
+        icon.stop()
+        detector.close()
+        os._exit(0)
+
+    def camera_loop(self):
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
             print("[ERROR] Cannot open webcam.")
-            sys.exit(1)
-
-        print("[INFO] MiddleManager is watching... Show it who's boss.")
-        print("[INFO] Press Q in the webcam window to quit.")
+            os._exit(1)
 
         gesture_hold_frames = 0
         required_frames = 10
 
-        while True:
+        while self.running:
             ret, frame = cap.read()
             if not ret:
-                break
+                continue
 
             frame = cv2.flip(frame, 1)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -167,8 +187,6 @@ class MiddleFingerApp:
 
             if detected and not self.countdown_active:
                 gesture_hold_frames += 1
-                cv2.putText(frame, f"DETECTED ({gesture_hold_frames}/{required_frames})",
-                            (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 if gesture_hold_frames >= required_frames:
                     gesture_hold_frames = 0
                     print("[INFO] Middle finger detected! Triggering shutdown countdown.")
@@ -176,17 +194,23 @@ class MiddleFingerApp:
             else:
                 gesture_hold_frames = max(0, gesture_hold_frames - 1)
 
-            cv2.putText(frame, "MiddleManager", (10, frame.shape[0] - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-            cv2.imshow("MiddleManager", frame)
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
         cap.release()
-        cv2.destroyAllWindows()
-        detector.close()
-        print("[INFO] MiddleManager closed.")
+
+    def run(self):
+        # Start camera loop in background thread
+        cam_thread = threading.Thread(target=self.camera_loop, daemon=True)
+        cam_thread.start()
+
+        # System tray
+        icon_image = create_tray_icon()
+        menu = pystray.Menu(
+            pystray.MenuItem("MiddleManager — watching 👀", None, enabled=False),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Quit", self.quit_app)
+        )
+        self.tray = pystray.Icon("MiddleManager", icon_image, "MiddleManager 🖕", menu)
+        print("[INFO] MiddleManager running in system tray. Right-click tray icon to quit.")
+        self.tray.run()
 
 if __name__ == "__main__":
     app = MiddleFingerApp()

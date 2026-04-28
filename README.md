@@ -56,7 +56,7 @@ cd MiddleManager
 
 ```bash
 py -3.12 -m venv middlemanager-env
-middlemanager-env\Scriptsctivate
+middlemanager-env\Scripts\activate
 ```
 
 **Install dependencies**
