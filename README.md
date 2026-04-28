@@ -83,7 +83,6 @@ PRs welcome. Ideas that would make this better:
 - System tray icon so it runs silently in the background
 - Custom sound on trigger
 - Support for other gestures (thumbs down → sleep, double finger guns → restart)
-- macOS / Linux port
 
 ---
 
