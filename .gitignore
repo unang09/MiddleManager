@@ -1,0 +1,15 @@
+# Virtual environment
+middlemanager-env/
+
+# MediaPipe model file (large, auto-downloads on first run)
+hand_landmarker.task
+
+# Python cache
+.vscode
+__pycache__/
+*.pyc
+*.pyo
+
+# OS junk
+.DS_Store
+Thumbs.db
