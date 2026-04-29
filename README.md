@@ -75,7 +75,7 @@ middlemanager-env\Scripts\activate
 **Install dependencies**
 
 ```bash
-pip install opencv-python mediapipe pystray pillow pynput
+pip install -r requirements.txt
 ```
 
 **Run**
