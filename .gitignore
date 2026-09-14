@@ -13,3 +13,7 @@ __pycache__/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Build output (PyInstaller)
+build/
+dist/
