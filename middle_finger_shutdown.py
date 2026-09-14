@@ -14,15 +14,65 @@ from PIL import Image, ImageDraw
 import pystray
 from pynput import keyboard
 
-# --- Download model if needed ---
+# --- Locate model (bundled, cached, or downloaded) ---
 
-MODEL_PATH = "hand_landmarker.task"
+MODEL_NAME = "hand_landmarker.task"
 MODEL_URL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
 
-if not os.path.exists(MODEL_PATH):
-    print("[INFO] Downloading hand landmarker model (~9MB)...")
-    urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+def resource_dir():
+    """Where read-only bundled files live (PyInstaller-aware)."""
+    if getattr(sys, "frozen", False):
+        return getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+def cache_dir():
+    """Per-user writable dir. The install dir may be read-only, so never write there."""
+    if platform.system() == "Windows":
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    else:
+        base = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    path = os.path.join(base, "MiddleManager")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+def fatal(message):
+    """Report a startup failure even when frozen with no console, then exit."""
+    print(f"[ERROR] {message}")
+    try:
+        import tkinter.messagebox as messagebox
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showerror("MiddleManager", message)
+        root.destroy()
+    except Exception:
+        pass
+    sys.exit(1)
+
+def resolve_model():
+    bundled = os.path.join(resource_dir(), MODEL_NAME)
+    if os.path.exists(bundled):
+        return bundled
+
+    cached = os.path.join(cache_dir(), MODEL_NAME)
+    if os.path.exists(cached):
+        return cached
+
+    print("[INFO] Downloading hand landmarker model (~8MB)...")
+    partial = cached + ".part"
+    try:
+        urllib.request.urlretrieve(MODEL_URL, partial)
+        os.replace(partial, cached)   # atomic, so an interrupted download can't leave a corrupt model
+    except Exception as e:
+        try:
+            os.remove(partial)
+        except OSError:
+            pass
+        fatal("Could not download the hand detection model."
+              f"\n\n{e}\n\nCheck your internet connection and try again.")
     print("[INFO] Model downloaded.")
+    return cached
+
+MODEL_PATH = resolve_model()
 
 # --- Gesture Detection ---
 
