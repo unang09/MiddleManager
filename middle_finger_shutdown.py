@@ -14,6 +14,13 @@ from PIL import Image, ImageDraw
 import pystray
 from pynput import keyboard
 
+# --- Test mode ---
+
+# Runs the whole real path -- hotkey, camera, gesture detection, countdown --
+# and reports the outcome instead of shutting down. The only way to verify a
+# build end to end without destroying the user's unsaved work.
+TEST_MODE = "--test" in sys.argv
+
 # --- Locate model (bundled, cached, or downloaded) ---
 
 MODEL_NAME = "hand_landmarker.task"
@@ -114,7 +121,8 @@ class CountdownWindow:
     def __init__(self, on_cancel):
         self.on_cancel = on_cancel
         self.root = tk.Tk()
-        self.root.title("Shutdown Triggered")
+        self.root.title("Shutdown Triggered (TEST MODE)" if TEST_MODE
+                        else "Shutdown Triggered")
         self.root.attributes("-topmost", True)
         self.root.resizable(False, False)
         self.root.configure(bg="#1a1a1a")
@@ -128,14 +136,17 @@ class CountdownWindow:
             font=("Segoe UI", 22, "bold"), fg="#ffffff", bg="#1a1a1a")
         self.label.pack(pady=(28, 8))
 
-        tk.Label(self.root, text="Shutting down...",
-            font=("Segoe UI", 11), fg="#aaaaaa", bg="#1a1a1a").pack()
+        self.subtitle = tk.Label(self.root,
+            text="TEST MODE — nothing will happen" if TEST_MODE else "Shutting down...",
+            font=("Segoe UI", 11), fg="#aaaaaa", bg="#1a1a1a")
+        self.subtitle.pack()
 
-        tk.Button(self.root, text="Cancel  (press any key or click)",
+        self.button = tk.Button(self.root, text="Cancel  (press any key or click)",
             font=("Segoe UI", 10), fg="#ffffff", bg="#c0392b",
             activebackground="#e74c3c", activeforeground="#ffffff",
             relief="flat", padx=16, pady=8, cursor="hand2",
-            command=self.cancel).pack(pady=(14, 0))
+            command=self.cancel)
+        self.button.pack(pady=(14, 0))
 
         self.root.bind("<Key>", lambda e: self.cancel())
         self.root.protocol("WM_DELETE_WINDOW", self.cancel)
@@ -143,6 +154,16 @@ class CountdownWindow:
 
     def update_label(self, n):
         self.label.config(text=f"Shutting down in {n}...")
+
+    def show_test_result(self):
+        """Test mode: report the result in this window rather than shutting down.
+
+        Runs on the window's own event loop via after(), because tkinter is not
+        thread-safe and the countdown lives on another thread.
+        """
+        self.label.config(text="Test passed", fg="#2ecc71")
+        self.subtitle.config(text="A real run would have shut down here.")
+        self.button.config(text="Close", bg="#27ae60", activebackground="#2ecc71")
 
     def cancel(self):
         self.cancelled = True
@@ -190,6 +211,12 @@ class MiddleFingerApp:
                 win.root.after(0, win.update_label, i)
                 time.sleep(1)
             if not win.cancelled:
+                if TEST_MODE:
+                    # Leave the window up showing the result; closing it clears
+                    # countdown_active via cancel() -> on_cancel().
+                    print("[TEST] Gesture confirmed. A real run would shut down now.")
+                    win.root.after(0, win.show_test_result)
+                    return
                 win.root.after(0, win.root.destroy)
                 print("[ACTION] Shutting down NOW.")
                 if platform.system() == "Windows":
@@ -314,10 +341,15 @@ class MiddleFingerApp:
         os._exit(0)
 
     def build_menu(self):
-        return pystray.Menu(
+        items = [
             pystray.MenuItem(self.get_status_text(), None, enabled=False),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Hotkey: Ctrl+Alt+M", None, enabled=False),
+        ]
+        if TEST_MODE:
+            items.append(
+                pystray.MenuItem("TEST MODE — will not shut down", None, enabled=False))
+        items += [
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Mode", pystray.Menu(
                 pystray.MenuItem(
@@ -334,8 +366,9 @@ class MiddleFingerApp:
                 ),
             )),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Quit", self.quit_app)
-        )
+            pystray.MenuItem("Quit", self.quit_app),
+        ]
+        return pystray.Menu(*items)
 
     def run(self):
         self.start_hotkey_listener()
@@ -344,9 +377,11 @@ class MiddleFingerApp:
         self.tray = pystray.Icon(
             "MiddleManager",
             icon_image,
-            "MiddleManager \U0001f595",
+            "MiddleManager \U0001f595" + (" — TEST MODE" if TEST_MODE else ""),
             self.build_menu()
         )
+        if TEST_MODE:
+            print("[INFO] TEST MODE — the gesture will be reported, not acted on.")
         print("[INFO] MiddleManager running. Press Ctrl+Alt+M to activate.")
         self.tray.run()
 
