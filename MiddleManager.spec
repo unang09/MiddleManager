@@ -26,9 +26,18 @@ Two things that look like easy wins and are not:
 """
 
 import os
+import sys
 import urllib.request
 
 from PyInstaller.utils.hooks import collect_all
+
+# Generate the .ico from the same code that draws the tray icon, so the exe,
+# the shortcuts and the installer can never drift from what the app shows.
+sys.path.insert(0, SPECPATH)
+import icon as icon_module
+
+icon_path = os.path.join(SPECPATH, "MiddleManager.ico")
+icon_module.write_ico(icon_path)
 
 MODEL_NAME = "hand_landmarker.task"
 MODEL_URL = ("https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
@@ -73,6 +82,7 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name="MiddleManager",
+    icon=icon_path,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

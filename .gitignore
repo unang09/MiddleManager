@@ -17,3 +17,6 @@ Thumbs.db
 # Build output (PyInstaller)
 build/
 dist/
+
+# Generated icon (built from icon.py)
+MiddleManager.ico

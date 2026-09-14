@@ -10,7 +10,7 @@ import sys
 import urllib.request
 import platform
 import os
-from PIL import Image, ImageDraw
+from icon import create_icon
 import pystray
 from pynput import keyboard
 
@@ -162,18 +162,6 @@ options = vision.HandLandmarkerOptions(
     min_tracking_confidence=0.5
 )
 detector = vision.HandLandmarker.create_from_options(options)
-
-# --- Tray Icon ---
-
-def create_icon(armed=False):
-    img = Image.new("RGB", (64, 64), color="#1a1a1a")
-    draw = ImageDraw.Draw(img)
-    finger_color = "#ff4444" if armed else "#ffffff"
-    draw.rectangle([26, 10, 38, 45], fill=finger_color)
-    draw.rectangle([14, 28, 25, 45], fill="#555555")
-    draw.rectangle([39, 28, 50, 45], fill="#555555")
-    draw.rectangle([20, 45, 44, 54], fill="#ffffff")
-    return img
 
 # --- Countdown Window ---
 
