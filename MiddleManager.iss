@@ -1,0 +1,94 @@
+; Inno Setup script for MiddleManager
+;
+; Build:
+;     pyinstaller MiddleManager.spec     (produces dist\MiddleManager\)
+;     iscc MiddleManager.iss             (produces dist\MiddleManager-Setup-win64.exe)
+;
+; Requires Inno Setup 6. This installs per-user into %LOCALAPPDATA%\Programs so
+; it never triggers a UAC prompt -- worth having, because an unsigned installer
+; asking for admin rights is exactly what a malicious one looks like.
+
+#define AppName        "MiddleManager"
+#define AppVersion     "1.0.0"
+#define AppPublisher   "Unang"
+#define AppExeName     "MiddleManager.exe"
+#define AppURL         "https://github.com/unang09/MiddleManager"
+
+[Setup]
+; Keep AppId stable forever. Changing it makes Windows treat a new build as a
+; separate product, so upgrades stop replacing the old one.
+AppId={{621EDC3D-84C7-4B3B-89DB-CEE2DA237EFB}
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppPublisher={#AppPublisher}
+AppPublisherURL={#AppURL}
+AppSupportURL={#AppURL}
+VersionInfoVersion={#AppVersion}
+
+DefaultDirName={autopf}\{#AppName}
+DefaultGroupName={#AppName}
+PrivilegesRequired=lowest
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+
+OutputDir=dist
+OutputBaseFilename=MiddleManager-Setup-win64
+Compression=lzma2/max
+SolidCompression=yes
+WizardStyle=modern
+DisableProgramGroupPage=yes
+LicenseFile=LICENSE
+
+; No SetupIconFile / UninstallDisplayIcon yet: the app draws its tray icon at
+; runtime with PIL and the repo has no .ico, so the installer and shortcuts use
+; the Windows default. Add an icon and uncomment these two lines.
+;SetupIconFile=MiddleManager.ico
+;UninstallDisplayIcon={app}\{#AppExeName}
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Tasks]
+Name: "autostart"; Description: "Start {#AppName} when I sign in"
+Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
+
+[Files]
+Source: "dist\MiddleManager\*"; DestDir: "{app}"; \
+    Flags: ignoreversion recursesubdirs createallsubdirs
+
+[Icons]
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
+Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+
+[Registry]
+; Same key and value name the app's own "Start with Windows" toggle uses, so the
+; two agree: the tray item shows checked after install, and unchecking it there
+; removes this entry. Quoting matches autostart_command() exactly.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
+    ValueType: string; ValueName: "{#AppName}"; \
+    ValueData: """{app}\{#AppExeName}"""; \
+    Flags: uninsdeletevalue; Tasks: autostart
+
+[Run]
+Filename: "{app}\{#AppExeName}"; Description: "Run {#AppName} now"; \
+    Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+; The app lives in the tray with no visible window, so Inno's own
+; CloseApplications detection will not find it. Kill it explicitly or its files
+; stay locked and the uninstall leaves debris behind.
+Filename: "{sys}\taskkill.exe"; Parameters: "/IM {#AppExeName} /F"; \
+    Flags: runhidden; RunOnceId: "KillMiddleManager"
+
+[Code]
+{ Same problem when upgrading over a running copy: terminate it before the
+  files are replaced, otherwise the install fails on locked files. }
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM {#AppExeName} /F', '',
+       SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := '';
+end;
