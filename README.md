@@ -41,11 +41,27 @@ MiddleManager fixes this.
 - **Global hotkey** — `Ctrl+Alt+M` wakes the camera from anywhere, no matter what app is focused
 - **Two modes** — Manual (hotkey works anytime) or Schedule (hotkey only works Mon–Fri, 9am–5pm)
 - **5-second countdown** — with a cancel button, for the weak of heart
+- **Start with Windows** — so it's already waiting when your day goes wrong
+- **Test mode** — the whole experience, minus the part where you lose your work
 - **Cross-platform** — works on Windows and Linux
 
 ---
 
 ## Installation
+
+### Windows — just download it
+
+Grab `MiddleManager-Setup-win64.exe` from the [Releases page](https://github.com/unang09/MiddleManager/releases) and run it.
+
+- Installs for your user only, into `%LOCALAPPDATA%\Programs\MiddleManager`. No admin rights, no UAC prompt.
+- Tick **"Start MiddleManager when I sign in"** if you want it running from boot.
+- Uninstall any time from **Settings → Apps**. It takes its autostart entry with it.
+
+No Python required. Everything, including the hand detection model, is bundled.
+
+**About the scary blue window:** Windows SmartScreen will warn you that the app is unrecognised. That's because it isn't code-signed — a signing certificate costs a few hundred dollars a year, and this is a free app about flipping off your laptop. Click **More info → Run anyway**, or build it yourself from source below. Being suspicious of an unsigned app whose whole job is shutting down your computer is healthy, frankly.
+
+### From source (Windows or Linux)
 
 **Requirements**
 
@@ -61,7 +77,7 @@ Download the Windows 64-bit installer from the [official release page](https://w
 **Clone the repo**
 
 ```bash
-git clone git@github.com:yourusername/MiddleManager.git
+git clone git@github.com:unang09/MiddleManager.git
 cd MiddleManager
 ```
 
@@ -84,7 +100,18 @@ pip install -r requirements.txt
 python middle_finger_shutdown.py
 ```
 
-On first run, the app will automatically download the MediaPipe hand landmarker model (~9MB). After that it works offline.
+On first run, the app will automatically download the MediaPipe hand landmarker model (~8MB) into `%LOCALAPPDATA%\MiddleManager` (or `~/.cache/MiddleManager` on Linux). After that it works offline.
+
+### Build the installer yourself (Windows)
+
+For the trust-no-one crowd, or anyone who wants to change something. You'll need [PyInstaller](https://pyinstaller.org) in your venv (`pip install pyinstaller`) and [Inno Setup 6](https://jrsoftware.org/isdl.php).
+
+```bash
+pyinstaller MiddleManager.spec     # -> dist/MiddleManager/  (the app, ~240MB unpacked)
+iscc MiddleManager.iss             # -> dist/MiddleManager-Setup-win64.exe
+```
+
+Run them in that order — the installer packages the build, and the build generates the icon. `MiddleManager.spec` downloads the model if you don't have it, and explains why the result is as big as it is. (Short version: MediaPipe and OpenCV. Your finger is not the heavy part.)
 
 ---
 
@@ -113,6 +140,31 @@ Right-click the tray icon to switch between modes.
 
 ---
 
+## Start with Windows
+
+Right-click the tray icon and tick **Start with Windows** (or **Start at login** on Linux). MiddleManager will be in your tray every time you sign in, loaded and waiting.
+
+If you used the installer and ticked the autostart box, this will already be ticked — they're the same setting. Untick it here and it's gone.
+
+---
+
+## Test mode
+
+Want to see it work without actually losing everything you haven't saved? Run it with `--test`:
+
+```bash
+MiddleManager.exe --test                  # installed / built app
+python middle_finger_shutdown.py --test   # from source
+```
+
+Everything is real — the hotkey, the camera, the gesture detection, the countdown — except the ending. Instead of shutting down, the countdown window turns green and tells you it would have. Close it and MiddleManager goes back to waiting.
+
+You'll know you're in test mode because it says **TEST MODE** in the tray tooltip, the tray menu, and the countdown window. If it doesn't say that, it is not in test mode. Act accordingly.
+
+Autostart always launches the real thing, even if you turned it on from test mode. That's on purpose.
+
+---
+
 ## Sensitivity / false triggers
 
 The gesture requires all four conditions to be met simultaneously — middle finger up, and index, ring, and pinky all curled. It's specific enough that accidental triggers are rare, but if you work in an environment where spontaneous middle fingers are common, that's a you problem.
@@ -137,6 +189,12 @@ A: Absolutely. It will only shut down your computer. It will not, to our knowled
 
 **Q: What if I accidentally trigger it?**
 A: You have 5 seconds. That is 5 full seconds. If you cannot cancel a shutdown in 5 seconds, MiddleManager is the least of your problems.
+
+**Q: Windows says this app might put my PC at risk. Is it a virus?**
+A: No. It's unsigned, because signing certificates cost real money and this app costs none. The source is right here if you'd like to read every line, and you can build the installer yourself. Windows is right to be suspicious of an unknown app that shuts your computer down. It is simply wrong about this one.
+
+**Q: How do I try it without actually shutting down?**
+A: `--test`. See [Test mode](#test-mode). For people who like to know the parachute works before they jump.
 
 **Q: Will it work on my left hand?**
 A: Yes. We do not discriminate. MiddleManager respects all fingers equally, as long as it's the middle one.
