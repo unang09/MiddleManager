@@ -13,3 +13,10 @@ __pycache__/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Build output (PyInstaller)
+build/
+dist/
+
+# Generated icon (built from icon.py)
+MiddleManager.ico

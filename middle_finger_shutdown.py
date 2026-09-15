@@ -10,7 +10,7 @@ import sys
 import urllib.request
 import platform
 import os
-from PIL import Image, ImageDraw
+from icon import create_icon
 import pystray
 from pynput import keyboard
 
@@ -20,6 +20,66 @@ from pynput import keyboard
 # and reports the outcome instead of shutting down. The only way to verify a
 # build end to end without destroying the user's unsaved work.
 TEST_MODE = "--test" in sys.argv
+
+# --- Autostart ---
+
+AUTOSTART_NAME = "MiddleManager"
+WINDOWS_RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+
+def autostart_command():
+    """The command that relaunches this app at login.
+
+    Deliberately never includes --test. Enabling autostart while testing must
+    register the real app, not whatever mode happens to be running right now.
+    """
+    if getattr(sys, "frozen", False):
+        return f'"{sys.executable}"'
+    return f'"{sys.executable}" "{os.path.abspath(__file__)}"'
+
+def linux_autostart_file():
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    return os.path.join(base, "autostart", "middlemanager.desktop")
+
+def autostart_enabled():
+    if platform.system() == "Windows":
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, WINDOWS_RUN_KEY) as key:
+                winreg.QueryValueEx(key, AUTOSTART_NAME)
+            return True
+        except OSError:
+            return False
+    return os.path.exists(linux_autostart_file())
+
+def set_autostart(enable):
+    if platform.system() == "Windows":
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, WINDOWS_RUN_KEY, 0,
+                            winreg.KEY_SET_VALUE) as key:
+            if enable:
+                winreg.SetValueEx(key, AUTOSTART_NAME, 0, winreg.REG_SZ, autostart_command())
+            else:
+                try:
+                    winreg.DeleteValue(key, AUTOSTART_NAME)
+                except FileNotFoundError:
+                    pass
+        return
+
+    path = linux_autostart_file()
+    if enable:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("[Desktop Entry]\n"
+                    "Type=Application\n"
+                    f"Name={AUTOSTART_NAME}\n"
+                    f"Exec={autostart_command()}\n"
+                    "Terminal=false\n"
+                    "X-GNOME-Autostart-enabled=true\n")
+    else:
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
 
 # --- Locate model (bundled, cached, or downloaded) ---
 
@@ -102,18 +162,6 @@ options = vision.HandLandmarkerOptions(
     min_tracking_confidence=0.5
 )
 detector = vision.HandLandmarker.create_from_options(options)
-
-# --- Tray Icon ---
-
-def create_icon(armed=False):
-    img = Image.new("RGB", (64, 64), color="#1a1a1a")
-    draw = ImageDraw.Draw(img)
-    finger_color = "#ff4444" if armed else "#ffffff"
-    draw.rectangle([26, 10, 38, 45], fill=finger_color)
-    draw.rectangle([14, 28, 25, 45], fill="#555555")
-    draw.rectangle([39, 28, 50, 45], fill="#555555")
-    draw.rectangle([20, 45, 44, 54], fill="#ffffff")
-    return img
 
 # --- Countdown Window ---
 
@@ -330,6 +378,15 @@ class MiddleFingerApp:
         print("[INFO] Mode: Schedule (Mon–Fri, 9am–5pm)")
         self.update_tray_status()
 
+    def toggle_autostart(self, icon, item):
+        try:
+            enable = not autostart_enabled()
+            set_autostart(enable)
+            print(f"[INFO] Autostart {'enabled' if enable else 'disabled'}.")
+        except OSError as e:
+            print(f"[ERROR] Could not change autostart: {e}")
+        self.update_tray_status()
+
     def quit_app(self, icon, item):
         print("[INFO] Quitting MiddleManager.")
         self.running = False
@@ -365,6 +422,11 @@ class MiddleFingerApp:
                     radio=True
                 ),
             )),
+            pystray.MenuItem(
+                "Start with Windows" if platform.system() == "Windows" else "Start at login",
+                self.toggle_autostart,
+                checked=lambda item: autostart_enabled()
+            ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Quit", self.quit_app),
         ]
