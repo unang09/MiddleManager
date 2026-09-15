@@ -53,6 +53,8 @@ MiddleManager fixes this.
 
 Grab `MiddleManager-Setup-win64.exe` from the [Releases page](https://github.com/unang09/MiddleManager/releases) and run it.
 
+Also free on [itch.io](https://yuji09.itch.io/middlemanager) — name your own price, including $0. If it made you laugh, that's where the tip jar lives.
+
 - Installs for your user only, into `%LOCALAPPDATA%\Programs\MiddleManager`. No admin rights, no UAC prompt.
 - Tick **"Start MiddleManager when I sign in"** if you want it running from boot.
 - Uninstall any time from **Settings → Apps**. It takes its autostart entry with it.
